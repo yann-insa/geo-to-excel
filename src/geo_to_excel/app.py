@@ -337,65 +337,90 @@ def parse_kml_file(file_path, progress_cb=None):
         progress_cb("Analyse des données KML…", 30)
 
     root = tree.getroot()
-    ns = {"kml": "http://www.opengis.net/kml/2.2"}
+
+    # Détecter dynamiquement le namespace KML.
+    # Cas spécial fréquent : <kml xmlns="..."> puis <Document xmlns="">
+    # qui reset le namespace à vide pour tous les enfants.
+    # Stratégie : essayer avec le namespace du root, sinon sans namespace.
+    tag = root.tag
+    if tag.startswith("{"):
+        kml_ns = tag[1:tag.index("}")]
+    else:
+        kml_ns = ""
+
+    # Tester si les Placemarks sont dans le namespace ou pas
+    if kml_ns:
+        ns_test = {"kml": kml_ns}
+        test_pm = root.findall(".//kml:Placemark", ns_test)
+        if test_pm:
+            ns = ns_test
+            _p = "kml:"
+        else:
+            # Namespace sur root mais pas sur les enfants (xmlns="" override)
+            ns = {}
+            _p = ""
+    else:
+        ns = {}
+        _p = ""
 
     # Styles
     styles = {}
-    for style in root.findall(".//kml:Style", ns):
+    for style in root.findall(f".//{_p}Style", ns):
         sid = style.get("id", "")
-        line_el = style.find("kml:LineStyle", ns)
+        line_el = style.find(f"{_p}LineStyle", ns)
         color = ""
         if line_el is not None:
-            col_el = line_el.find("kml:color", ns)
+            col_el = line_el.find(f"{_p}color", ns)
             if col_el is not None and col_el.text:
                 color = _kml_color_to_hex(col_el.text)
         styles[sid] = color
 
     style_maps = {}
-    for sm in root.findall(".//kml:StyleMap", ns):
+    for sm in root.findall(f".//{_p}StyleMap", ns):
         sm_id = sm.get("id", "")
-        for pair in sm.findall("kml:Pair", ns):
-            key_el = pair.find("kml:key", ns)
-            url_el = pair.find("kml:styleUrl", ns)
+        for pair in sm.findall(f"{_p}Pair", ns):
+            key_el = pair.find(f"{_p}key", ns)
+            url_el = pair.find(f"{_p}styleUrl", ns)
             if (key_el is not None and key_el.text == "normal"
                     and url_el is not None and url_el.text):
                 ref = url_el.text.lstrip("#")
                 style_maps[sm_id] = styles.get(ref, "")
 
-    placemarks = root.findall(".//kml:Placemark", ns)
+    placemarks = root.findall(f".//{_p}Placemark", ns)
     rows = []
 
     for idx, pm in enumerate(placemarks):
         # Nom
-        name_el = pm.find("kml:n", ns) or pm.find("kml:name", ns)
+        name_el = pm.find(f"{_p}name", ns)
         pm_name = name_el.text if name_el is not None and name_el.text else f"Segment_{idx + 1}"
 
         # Couleur
-        style_url_el = pm.find("kml:styleUrl", ns)
+        style_url_el = pm.find(f"{_p}styleUrl", ns)
         color_hex = ""
         if style_url_el is not None and style_url_el.text:
             ref = style_url_el.text.lstrip("#")
             color_hex = style_maps.get(ref, styles.get(ref, ""))
 
-        # LineString
-        ls = pm.find(".//kml:LineString", ns)
-        if ls is not None:
-            coord_el = ls.find("kml:coordinates", ns)
+        # LineStrings (findall pour supporter MultiGeometry)
+        line_strings = pm.findall(f".//{_p}LineString", ns)
+        for ls_idx, ls in enumerate(line_strings):
+            coord_el = ls.find(f"{_p}coordinates", ns)
             if coord_el is not None and coord_el.text:
                 coords = _parse_kml_coordinates(coord_el.text)
                 if len(coords) >= 2:
+                    suffix = f"_{ls_idx + 1}" if len(line_strings) > 1 else ""
                     rows.append({
-                        "name": pm_name, "type": "LINESTRING",
+                        "name": f"{pm_name}{suffix}", "type": "LINESTRING",
                         "layer": pm_name, "coords": coords,
                         "wkt": coords_to_wkt_linestring(coords),
                         "length": calc_length_km(coords),
                         "color": color_hex,
                     })
 
-        # Point
-        pt = pm.find(".//kml:Point", ns)
-        if pt is not None:
-            coord_el = pt.find("kml:coordinates", ns)
+        # Points (findall pour supporter MultiGeometry)
+        points = pm.findall(f".//{_p}Point", ns)
+        for pt in points:
+            coord_el = pt.find(f"{_p}coordinates", ns)
             if coord_el is not None and coord_el.text:
                 coords = _parse_kml_coordinates(coord_el.text)
                 if coords:
@@ -1086,8 +1111,15 @@ class App(tk.Tk):
         self.info_label.config(
             text=f"📍 {os.path.dirname(path)}   •   {size_str}")
 
+        # Toujours afficher le gestionnaire (doit être packé AVANT proj_frame
+        # pour pouvoir utiliser before=self.gest_frame)
+        self.gest_frame.pack_forget()
+        self.gest_frame.pack(fill="x", padx=32, pady=(14, 0),
+                             before=self.prog_frame)
+
         # Afficher / masquer la section projection
         if self._is_dxf:
+            self.proj_frame.pack_forget()
             self.proj_frame.pack(fill="x", padx=32, pady=(14, 0),
                                  before=self.gest_frame)
             # Détection automatique de la projection
@@ -1095,10 +1127,6 @@ class App(tk.Tk):
         else:
             self.proj_frame.pack_forget()
             self.custom_frame.pack_forget()
-
-        # Toujours afficher le gestionnaire
-        self.gest_frame.pack(fill="x", padx=32, pady=(14, 0),
-                             before=self.prog_frame)
 
         self.convert_btn.config(state="normal")
         self.status_label.config(text="")

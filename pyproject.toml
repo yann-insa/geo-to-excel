@@ -34,3 +34,28 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["geo_to_excel"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "if __name__",
+    "class App",
+    "def _build_",
+    "def _browse",
+    "def _on_proj",
+    "def _on_detect",
+    "def _run_auto",
+    "def _get_epsg",
+    "def _update_progress",
+    "def _start_convert",
+    "def _cancel_convert",
+    "def _do_convert",
+    "def _on_done",
+    "def main",
+    "import tkinter",
+    "from tkinter",
+    "FONT_FAMILY",
+    "if sys.platform",
+]

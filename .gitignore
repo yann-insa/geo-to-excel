@@ -37,11 +37,16 @@ Desktop.ini
 *.pem
 *.key
 
-# Fichiers de données de test (volumineux)
+# Fichiers de données géo (volumineux)
 *.kmz
 *.kml
 *.dxf
 *.xlsx
+
+# Exception : fichiers de test
+!tests/*.kml
+!tests/*.dxf
+!tests/*.kmz
 
 # Claude Code
 .claude/projects/
