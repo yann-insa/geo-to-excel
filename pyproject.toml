@@ -1,0 +1,36 @@
+[project]
+name = "geo-to-excel"
+version = "1.0.0"
+description = "Convertisseur KMZ / KML / DXF vers Excel au format exportations ouvrages reseau fibre"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    { name = "Yann" },
+]
+
+dependencies = [
+    "openpyxl>=3.1",
+    "ezdxf>=1.4",
+    "pyproj>=3.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pyinstaller>=6.0",
+]
+
+[project.scripts]
+geo-to-excel = "geo_to_excel.app:main"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
