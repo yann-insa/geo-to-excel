@@ -1,12 +1,34 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git *)",
-      "Bash(python *)",
-      "Bash(pip *)",
-      "Bash(pytest *)",
-      "Bash(ls *)",
-      "Bash(tree *)"
+      "ls", "ll", "la", "tree", "pwd", "cd", "cat", "head", "tail", "wc", "find", "grep",
+      "git status", "git log", "git diff", "git branch", "git fetch", "git pull", "git stash", "git show",
+      "git add", "git commit",
+      "python --version", "python -c",
+      "python geo_to_excel.py",
+      "python -m pytest",
+      "python -m venv",
+      "pip list", "pip show", "pip freeze",
+      "pip install openpyxl", "pip install ezdxf", "pip install pyproj", "pip install pyinstaller",
+      "pip install openpyxl ezdxf pyproj",
+      "pip install openpyxl ezdxf pyproj pyinstaller",
+      ".venv/Scripts/activate", ".venv\\Scripts\\activate",
+      "source .venv/bin/activate",
+      "whoami", "hostname", "uname"
+    ],
+    "deny": [
+      "rm -rf", "rm -r", "rm -f",
+      "kill", "killall", "shutdown", "reboot",
+      "chmod 777", "chmod -R",
+      "sudo",
+      "curl * | bash", "wget * | sh",
+      "git push --force", "git reset --hard", "git clean -fdx",
+      "drop database", "drop table", "truncate",
+      "npm publish", "pip upload", "twine upload",
+      "dd", "mkfs", "fdisk"
     ]
-  }
+  },
+  "env": {},
+  "model": "claude-sonnet-4-20250514",
+  "preferredLanguage": "fr"
 }
